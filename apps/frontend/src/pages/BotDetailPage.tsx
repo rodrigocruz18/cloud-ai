@@ -9,7 +9,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs'
 import { GeneralTab }       from './bot-tabs/GeneralTab'
 import { KnowledgeTab }     from './bot-tabs/KnowledgeTab'
 import { ToolsTab }         from './bot-tabs/ToolsTab'
-import { IntegrationsTab }  from './bot-tabs/IntegrationsTab'
 import { ConversationsTab } from './bot-tabs/ConversationsTab'
 import { LogsTab }          from './bot-tabs/LogsTab'
 import { TestChatModal }    from '@/components/TestChatModal'
@@ -117,7 +116,6 @@ export function BotDetailPage() {
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="conocimiento">Conocimiento</TabsTrigger>
             <TabsTrigger value="herramientas">Herramientas</TabsTrigger>
-            <TabsTrigger value="integraciones">Integraciones</TabsTrigger>
             <TabsTrigger value="conversaciones">Conversaciones</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
@@ -131,9 +129,6 @@ export function BotDetailPage() {
             </TabsContent>
             <TabsContent value="herramientas">
               <ToolsTab bot={bot} />
-            </TabsContent>
-            <TabsContent value="integraciones">
-              <IntegrationsTab bot={bot} />
             </TabsContent>
             <TabsContent value="conversaciones">
               <ConversationsTab bot={bot} />

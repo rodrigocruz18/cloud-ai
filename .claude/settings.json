@@ -5,7 +5,24 @@
       "PowerShell($env:PATH += \";C:\\\\Program Files\\\\GitHub CLI\"; gh --version)",
       "PowerShell($env:PATH += \";C:\\\\Program Files\\\\GitHub CLI\"; gh auth status)",
       "PowerShell(npm install -g @railway/cli)",
-      "PowerShell(railway --version)"
+      "PowerShell(railway --version)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" log --oneline -5)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" status --short)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" add apps/backend/src/index.ts)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"chore: add node version to health endpoint to force Railway rebuild\")",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" push origin main)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" add vercel.json)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"fix: vercel installCommand include devDeps for monorepo build\")",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" add apps/frontend/package.json)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"fix: remove tsc from frontend build, let vite handle transpilation\")",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" add apps/frontend/src/pages/BotDetailPage.tsx)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"fix: webhook URL uses VITE_API_URL base instead of hardcoded localhost\")",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" add apps/frontend/.env.production)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"fix: add .env.production with Railway API URL for Vite build\")",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" add packages/shared/src/types/conversation.ts apps/backend/src/core/bot-runtime/index.ts apps/backend/src/api/routes/messages.ts)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"feat: close conversation when bot detects farewell via [CLOSE] marker\")",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" add -A)",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"feat: simplify tools tab to HTTP Request only, remove integrations tab\")"
     ]
   }
 }

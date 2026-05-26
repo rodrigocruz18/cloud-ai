@@ -31,7 +31,7 @@ function buildPayload(cfg: HttpRequestConfig) {
   return { config, credentials }
 }
 
-export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack: () => void }) {
+export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: () => void }) {
   const queryClient = useQueryClient()
   const [view, setView] = useState<View>('list')
   const [editing, setEditing] = useState<Integration | null>(null)
@@ -87,9 +87,11 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack: () 
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ChevronLeft size={14} /> Volver a herramientas
-          </button>
+          {onBack && (
+            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronLeft size={14} /> Volver a herramientas
+            </button>
+          )}
           <button
             onClick={() => setView('new')}
             className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
