@@ -307,7 +307,7 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
           <Play size={14} /> {testLoading ? 'Ejecutando...' : 'Ejecutar'}
         </button>
 
-        {testResult && (
+        {testResult && testResult.response && (
           <div className="space-y-3">
             {/* Request */}
             {testResult.request && (
