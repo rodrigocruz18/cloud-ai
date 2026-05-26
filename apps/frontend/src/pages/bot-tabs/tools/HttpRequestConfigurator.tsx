@@ -263,6 +263,7 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
   // ── TEST ────────────────────────────────────────────────────────────────
   if (view === 'test' && testing) {
     const cfg = testing.config as HttpRequestConfig
+    const params = cfg.ai_parameters ?? []
     return (
       <div className="space-y-5 max-w-2xl">
         <div className="flex items-center gap-3">
@@ -270,15 +271,15 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
             <ChevronLeft size={14} /> Volver
           </button>
           <h3 className="font-semibold">Probar: {testing.name}</h3>
-          <span className="text-xs border rounded px-1.5 py-0.5 font-mono text-muted-foreground">{cfg.method}</span>
+          <span className="text-xs border rounded px-1.5 py-0.5 font-mono text-muted-foreground">{cfg.method ?? 'GET'}</span>
         </div>
 
         <p className="text-xs text-muted-foreground font-mono bg-muted px-3 py-2 rounded">{cfg.url}</p>
 
-        {cfg.ai_parameters.length > 0 && (
+        {params.length > 0 && (
           <div className="space-y-3">
             <p className="text-sm font-medium">Parámetros</p>
-            {cfg.ai_parameters.map((p) => (
+            {params.map((p) => (
               <div key={p.name}>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">
                   {p.name}{p.required ? ' *' : ''} — <span className="font-normal">{p.description}</span>
@@ -294,7 +295,7 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
           </div>
         )}
 
-        {cfg.ai_parameters.length === 0 && (
+        {params.length === 0 && (
           <p className="text-sm text-muted-foreground">Este tool no tiene parámetros — se ejecuta sin argumentos.</p>
         )}
 
