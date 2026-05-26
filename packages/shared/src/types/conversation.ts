@@ -26,12 +26,6 @@ export interface Message {
   created_at: string
 }
 
-export interface ToolCall {
-  id: string
-  name: string
-  arguments: Record<string, unknown>
-}
-
 export interface IncomingMessage {
   botId: string
   userPhone: string
