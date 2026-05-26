@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, FileText, Link, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Plus, Trash2, FileText, Link, RefreshCw, AlertCircle, CheckCircle2, Pencil } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { Bot, KnowledgeSource } from '@cloud-ai/shared'
@@ -15,9 +15,13 @@ function charCount(n: number) {
   return `${n} caracteres`
 }
 
+type FormMode = 'create' | 'edit'
+
 export function KnowledgeTab({ bot }: { bot: Bot }) {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
+  const [formMode, setFormMode] = useState<FormMode>('create')
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [type, setType] = useState<'text' | 'url'>('text')
   const [name, setName] = useState('')
   const [content, setContent] = useState('')
@@ -26,7 +30,6 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
   const { data: sources, isLoading } = useQuery({
     queryKey: ['knowledge', bot.id],
     queryFn: () => api.get<KnowledgeSource[]>(`/bots/${bot.id}/knowledge`),
-    // Poll while any source is still processing
     refetchInterval: (query) =>
       query.state.data?.some((s) => s.status === 'processing') ? 2000 : false,
   })
@@ -36,18 +39,25 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
       if (!name.trim()) throw new Error('El nombre es requerido')
       if (!content.trim()) throw new Error(type === 'url' ? 'La URL es requerida' : 'El contenido es requerido')
       if (type === 'url' && !content.startsWith('http')) throw new Error('La URL debe empezar con http:// o https://')
-      return api.post<KnowledgeSource>(`/bots/${bot.id}/knowledge`, {
-        type,
-        name: name.trim(),
-        content: content.trim(),
-      })
+      return api.post<KnowledgeSource>(`/bots/${bot.id}/knowledge`, { type, name: name.trim(), content: content.trim() })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge', bot.id] })
-      setShowForm(false)
-      setName('')
-      setContent('')
-      setFormError('')
+      cancelForm()
+    },
+    onError: (e) => setFormError(e instanceof Error ? e.message : 'Error al guardar'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: () => {
+      if (!name.trim()) throw new Error('El nombre es requerido')
+      if (!content.trim()) throw new Error(type === 'url' ? 'La URL es requerida' : 'El contenido es requerido')
+      if (type === 'url' && !content.startsWith('http')) throw new Error('La URL debe empezar con http:// o https://')
+      return api.put<KnowledgeSource>(`/bots/${bot.id}/knowledge/${editingId}`, { type, name: name.trim(), content: content.trim() })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge', bot.id] })
+      cancelForm()
     },
     onError: (e) => setFormError(e instanceof Error ? e.message : 'Error al guardar'),
   })
@@ -68,26 +78,43 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
     },
   })
 
-  const selectedType = SOURCE_TYPES.find((t) => t.value === type) ?? SOURCE_TYPES[0]
+  function startEdit(source: KnowledgeSource) {
+    setFormMode('edit')
+    setEditingId(source.id)
+    setType(source.type as 'text' | 'url')
+    setName(source.name)
+    const url = (source.config as Record<string, string>).url
+    setContent(source.type === 'url' ? (url ?? '') : (source.content as string ?? ''))
+    setFormError('')
+    setShowForm(true)
+  }
 
   function cancelForm() {
     setShowForm(false)
+    setFormMode('create')
+    setEditingId(null)
     setName('')
     setContent('')
     setFormError('')
+  }
+
+  const selectedType = SOURCE_TYPES.find((t) => t.value === type) ?? SOURCE_TYPES[0]!
+  const isPending = formMode === 'edit' ? updateMutation.isPending : createMutation.isPending
+
+  function handleSave() {
+    if (formMode === 'edit') updateMutation.mutate()
+    else createMutation.mutate()
   }
 
   return (
     <div className="space-y-4 max-w-2xl">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            El contenido de las fuentes activas se inyecta en el contexto del bot en cada conversación.
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          El contenido de las fuentes activas se inyecta en el contexto del bot en cada conversación.
+        </p>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setFormMode('create'); setShowForm(true) }}
           disabled={showForm}
           className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0"
         >
@@ -98,7 +125,9 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
       {/* Form */}
       {showForm && (
         <div className="bg-card border rounded-lg p-5 space-y-4">
-          <h3 className="font-semibold text-sm">Nueva fuente de conocimiento</h3>
+          <h3 className="font-semibold text-sm">
+            {formMode === 'edit' ? 'Editar fuente de conocimiento' : 'Nueva fuente de conocimiento'}
+          </h3>
 
           {/* Type selector */}
           <div className="flex gap-2">
@@ -106,9 +135,10 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
               <button
                 key={value}
                 type="button"
-                onClick={() => { setType(value); setContent('') }}
+                onClick={() => { setType(value); if (formMode === 'create') setContent('') }}
+                disabled={formMode === 'edit'}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors',
+                  'flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                   type === value
                     ? 'border-primary bg-primary/5 text-primary font-medium'
                     : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -121,7 +151,6 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
 
           <p className="text-xs text-muted-foreground -mt-2">{selectedType.hint}</p>
 
-          {/* Name */}
           <div>
             <label className="text-sm font-medium block mb-1.5">Nombre de la fuente</label>
             <input
@@ -132,7 +161,6 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
             />
           </div>
 
-          {/* Content / URL */}
           <div>
             <label className="text-sm font-medium block mb-1.5">
               {type === 'url' ? 'URL' : 'Contenido'}
@@ -156,7 +184,6 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
                 />
                 <p className="text-xs text-muted-foreground mt-1.5">
                   El texto se extrae automáticamente. Funciona mejor con páginas HTML estáticas.
-                  Sitios tipo React/Angular pueden no tener contenido legible.
                 </p>
               </>
             )}
@@ -173,18 +200,15 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
 
           <div className="flex gap-3">
             <button
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending}
+              onClick={handleSave}
+              disabled={isPending}
               className="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              {createMutation.isPending
+              {isPending
                 ? (type === 'url' ? 'Scrapeando...' : 'Guardando...')
-                : 'Guardar'}
+                : formMode === 'edit' ? 'Actualizar' : 'Guardar'}
             </button>
-            <button
-              onClick={cancelForm}
-              className="px-4 py-2 rounded-md text-sm font-medium border hover:bg-muted transition-colors"
-            >
+            <button onClick={cancelForm} className="px-4 py-2 rounded-md text-sm font-medium border hover:bg-muted transition-colors">
               Cancelar
             </button>
           </div>
@@ -240,15 +264,21 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
                 )}
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 {source.status === 'processing' && (
-                  <RefreshCw size={13} className="text-muted-foreground animate-spin" />
+                  <RefreshCw size={13} className="text-muted-foreground animate-spin mr-1" />
                 )}
                 {source.status === 'ready' && (
-                  <CheckCircle2 size={13} className="text-green-600" />
+                  <CheckCircle2 size={13} className="text-green-600 mr-1" />
                 )}
+                <button
+                  onClick={() => startEdit(source)}
+                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Pencil size={14} />
+                </button>
                 {deletingId === source.id ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 ml-1">
                     <span className="text-xs text-muted-foreground">¿Eliminar?</span>
                     <button
                       onClick={() => deleteMutation.mutate(source.id)}
@@ -257,10 +287,7 @@ export function KnowledgeTab({ bot }: { bot: Bot }) {
                     >
                       Sí
                     </button>
-                    <button
-                      onClick={() => setDeletingId(null)}
-                      className="text-xs px-2 py-0.5 rounded border hover:bg-muted"
-                    >
+                    <button onClick={() => setDeletingId(null)} className="text-xs px-2 py-0.5 rounded border hover:bg-muted">
                       No
                     </button>
                   </div>

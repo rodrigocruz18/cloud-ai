@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, Globe, ChevronLeft, Zap } from 'lucide-react'
+import { Plus, Pencil, Trash2, Globe, ChevronLeft, Zap, Play, Copy } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { Bot, Integration } from '@cloud-ai/shared'
 import { HttpRequestForm } from './HttpRequestForm'
 import { EMPTY_CONFIG, type HttpRequestConfig } from './http-request.types'
 
-type View = 'list' | 'new' | 'edit'
+type View = 'list' | 'new' | 'edit' | 'test'
 
 function buildPayload(cfg: HttpRequestConfig) {
   const credentials: Record<string, string> = {}
@@ -35,6 +35,10 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
   const queryClient = useQueryClient()
   const [view, setView] = useState<View>('list')
   const [editing, setEditing] = useState<Integration | null>(null)
+  const [testing, setTesting] = useState<Integration | null>(null)
+  const [testArgs, setTestArgs] = useState<Record<string, string>>({})
+  const [testResult, setTestResult] = useState<{ content: string; isError: boolean } | null>(null)
+  const [testLoading, setTestLoading] = useState(false)
 
   const { data: integrations, isLoading } = useQuery({
     queryKey: ['integrations', bot.id],
@@ -77,9 +81,45 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integrations', bot.id] }),
   })
 
+  const cloneMutation = useMutation({
+    mutationFn: (integration: Integration) => {
+      const cfg = integration.config as HttpRequestConfig
+      const { config, credentials } = buildPayload({ ...cfg, tool_name: `${cfg.tool_name}_copia` })
+      return api.post<Integration>(`/bots/${bot.id}/integrations`, { type: 'http_request', name: `${integration.name} (copia)`, config, credentials })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integrations', bot.id] }),
+  })
+
   function startEdit(integration: Integration) {
     setEditing(integration)
     setView('edit')
+  }
+
+  function startTest(integration: Integration) {
+    const cfg = integration.config as HttpRequestConfig
+    const initial: Record<string, string> = {}
+    for (const p of cfg.ai_parameters) initial[p.name] = ''
+    setTesting(integration)
+    setTestArgs(initial)
+    setTestResult(null)
+    setView('test')
+  }
+
+  async function runTest() {
+    if (!testing) return
+    setTestLoading(true)
+    setTestResult(null)
+    try {
+      const result = await api.post<{ content: string; isError: boolean }>(
+        `/bots/${bot.id}/integrations/${testing.id}/test`,
+        testArgs
+      )
+      setTestResult(result)
+    } catch (e) {
+      setTestResult({ content: e instanceof Error ? e.message : 'Error desconocido', isError: true })
+    } finally {
+      setTestLoading(false)
+    }
   }
 
   // ── LIST ────────────────────────────────────────────────────────────────
@@ -153,7 +193,13 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
                   )}
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <button onClick={() => startEdit(integration)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                  <button onClick={() => startTest(integration)} title="Probar" className="p-1.5 rounded hover:bg-green-50 text-muted-foreground hover:text-green-600 transition-colors">
+                    <Play size={14} />
+                  </button>
+                  <button onClick={() => cloneMutation.mutate(integration)} title="Clonar" className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                    <Copy size={14} />
+                  </button>
+                  <button onClick={() => startEdit(integration)} title="Editar" className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                     <Pencil size={14} />
                   </button>
                   <button
@@ -207,6 +253,66 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
           onCancel={() => { setView('list'); setEditing(null) }}
           saving={updateMutation.isPending}
         />
+      </div>
+    )
+  }
+
+  // ── TEST ────────────────────────────────────────────────────────────────
+  if (view === 'test' && testing) {
+    const cfg = testing.config as HttpRequestConfig
+    return (
+      <div className="space-y-5 max-w-2xl">
+        <div className="flex items-center gap-3">
+          <button onClick={() => { setView('list'); setTesting(null); setTestResult(null) }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ChevronLeft size={14} /> Volver
+          </button>
+          <h3 className="font-semibold">Probar: {testing.name}</h3>
+          <span className="text-xs border rounded px-1.5 py-0.5 font-mono text-muted-foreground">{cfg.method}</span>
+        </div>
+
+        <p className="text-xs text-muted-foreground font-mono bg-muted px-3 py-2 rounded">{cfg.url}</p>
+
+        {cfg.ai_parameters.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Parámetros</p>
+            {cfg.ai_parameters.map((p) => (
+              <div key={p.name}>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">
+                  {p.name}{p.required ? ' *' : ''} — <span className="font-normal">{p.description}</span>
+                </label>
+                <input
+                  value={testArgs[p.name] ?? ''}
+                  onChange={(e) => setTestArgs((prev) => ({ ...prev, [p.name]: e.target.value }))}
+                  className="input text-sm"
+                  placeholder={`Valor para ${p.name}...`}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {cfg.ai_parameters.length === 0 && (
+          <p className="text-sm text-muted-foreground">Este tool no tiene parámetros — se ejecuta sin argumentos.</p>
+        )}
+
+        <button
+          onClick={() => void runTest()}
+          disabled={testLoading}
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+        >
+          <Play size={14} /> {testLoading ? 'Ejecutando...' : 'Ejecutar'}
+        </button>
+
+        {testResult && (
+          <div className={`rounded-lg border p-4 ${testResult.isError ? 'border-destructive/40 bg-destructive/5' : 'border-green-200 bg-green-50'}`}>
+            <p className={`text-xs font-semibold mb-2 ${testResult.isError ? 'text-destructive' : 'text-green-700'}`}>
+              {testResult.isError ? 'Error' : 'Respuesta exitosa'}
+            </p>
+            <pre className="text-xs whitespace-pre-wrap break-words font-mono max-h-80 overflow-auto">
+              {testResult.content}
+            </pre>
+          </div>
+        )}
       </div>
     )
   }

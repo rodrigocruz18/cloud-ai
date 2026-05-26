@@ -46,7 +46,7 @@ export async function knowledgeRoutes(app: FastifyInstance): Promise<void> {
     const { botId } = request.params as { botId: string }
     const { data, error } = await supabase
       .from('knowledge_sources')
-      .select('id, bot_id, type, name, status, config, error_message, created_at, updated_at')
+      .select('id, bot_id, type, name, status, config, content, error_message, created_at, updated_at')
       .eq('bot_id', botId)
       .order('created_at')
     if (error) return reply.code(500).send({ success: false, error: { code: 'DB_ERROR', message: error.message } })
@@ -95,6 +95,51 @@ export async function knowledgeRoutes(app: FastifyInstance): Promise<void> {
       )
 
     return reply.code(201).send({ success: true, data: row })
+  })
+
+  app.put('/bots/:botId/knowledge/:id', async (request, reply) => {
+    const { botId, id } = request.params as { botId: string; id: string }
+    const parsed = CreateSchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ success: false, error: { code: 'VALIDATION_ERROR', message: parsed.error.message } })
+
+    const { type, name, content } = parsed.data
+
+    if (type === 'text') {
+      const { data, error } = await supabase
+        .from('knowledge_sources')
+        .update({ name, content, status: 'ready', error_message: null })
+        .eq('id', id).eq('bot_id', botId)
+        .select('id, bot_id, type, name, status, config, content, error_message, created_at, updated_at')
+        .single()
+      if (error || !data) return reply.code(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'Source not found' } })
+      return { success: true, data }
+    }
+
+    // type === 'url' — update name + re-scrape if URL changed
+    const { data: existing } = await supabase.from('knowledge_sources').select('config').eq('id', id).single()
+    const oldUrl = (existing?.config as Record<string, string>)?.url
+    const urlChanged = oldUrl !== content
+
+    const { data: row, error } = await supabase
+      .from('knowledge_sources')
+      .update({
+        name,
+        config: { url: content },
+        ...(urlChanged ? { status: 'processing', content: null, error_message: null } : {}),
+      })
+      .eq('id', id).eq('bot_id', botId)
+      .select('id, bot_id, type, name, status, config, content, error_message, created_at, updated_at')
+      .single()
+
+    if (error || !row) return reply.code(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'Source not found' } })
+
+    if (urlChanged) {
+      scrapeUrl(content)
+        .then((scraped) => supabase.from('knowledge_sources').update({ content: scraped, status: 'ready', error_message: null }).eq('id', id))
+        .catch((err: unknown) => supabase.from('knowledge_sources').update({ status: 'error', error_message: err instanceof Error ? err.message : String(err) }).eq('id', id))
+    }
+
+    return { success: true, data: row }
   })
 
   app.delete('/bots/:botId/knowledge/:id', async (request, reply) => {

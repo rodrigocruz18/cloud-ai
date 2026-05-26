@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { supabase } from '../../db/supabase.js'
 import { encrypt } from '../../lib/encrypt.js'
+import { executeHttpRequest } from '../../tools/executors/http-request.js'
 
 const CreateSchema = z.object({
   type: z.enum(['gmail','google_drive','agendapro','salesforce','hubspot','shopify','http_request']),
@@ -65,6 +66,28 @@ export async function integrationRoutes(app: FastifyInstance): Promise<void> {
 
     if (error || !data) return reply.code(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'Integration not found' } })
     return { success: true, data }
+  })
+
+  app.post('/bots/:botId/integrations/:id/test', async (request, reply) => {
+    const { botId, id } = request.params as { botId: string; id: string }
+    const args = (request.body as Record<string, unknown>) ?? {}
+
+    const { data } = await supabase
+      .from('integrations')
+      .select('config, credentials_encrypted')
+      .eq('id', id).eq('bot_id', botId)
+      .single()
+
+    if (!data) return reply.code(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'Integration not found' } })
+
+    const result = await executeHttpRequest(
+      data.config as Parameters<typeof executeHttpRequest>[0],
+      data.credentials_encrypted as string | null,
+      args,
+      'test'
+    )
+
+    return { success: true, data: { content: result.content, isError: result.isError } }
   })
 
   app.delete('/bots/:botId/integrations/:id', async (request, reply) => {
