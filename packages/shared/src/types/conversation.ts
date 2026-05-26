@@ -1,3 +1,5 @@
+import type { ToolCall } from './tool.js'
+
 export type ConversationStatus = 'active' | 'closed' | 'archived'
 export type ConversationChannel = 'whatsapp' | 'telegram' | 'instagram' | 'webchat'
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool'
