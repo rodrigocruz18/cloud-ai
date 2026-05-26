@@ -41,4 +41,5 @@ export interface OutgoingMessage {
   content: string
   conversationId: string
   messageId: string
+  closeConversation: boolean
 }
