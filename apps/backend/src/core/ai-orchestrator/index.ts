@@ -121,7 +121,7 @@ export class AIOrchestrator {
       }
 
       return {
-        name: `http.${cfg.tool_name}`,
+        name: `http_${cfg.tool_name}`,
         description: cfg.tool_description,
         parameters: Object.fromEntries(
           (cfg.ai_parameters ?? []).map((p) => [
@@ -149,7 +149,7 @@ export class AIOrchestrator {
     const httpIntegrationMap = new Map(
       httpIntegrations.map((i) => {
         const cfg = i.config as { tool_name: string }
-        return [`http.${cfg.tool_name}`, i]
+        return [`http_${cfg.tool_name}`, i]
       })
     )
 
