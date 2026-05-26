@@ -13,6 +13,7 @@ export interface Bot {
   temperature: number
   max_tokens: number | null
   status: BotStatus
+  enabled_tools: string[]
   webhook_secret: string
   created_at: string
   updated_at: string

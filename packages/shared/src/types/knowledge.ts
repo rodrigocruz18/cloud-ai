@@ -1,4 +1,4 @@
-export type KnowledgeSourceType = 'text' | 'pdf' | 'docx' | 'url' | 'google_drive'
+export type KnowledgeSourceType = 'text' | 'url'
 export type KnowledgeSourceStatus = 'pending' | 'processing' | 'ready' | 'error'
 
 export interface KnowledgeSource {
@@ -7,6 +7,7 @@ export interface KnowledgeSource {
   type: KnowledgeSourceType
   name: string
   status: KnowledgeSourceStatus
+  content: string | null
   config: Record<string, unknown>
   error_message: string | null
   created_at: string

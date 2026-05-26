@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(curl -s -X POST http://localhost:3001/api/v1/auth/login -H \"Content-Type: application/json\" -d \"{\\\\\"email\\\\\":\\\\\"rodrigocruzduarte@gmail.com\\\\\",\\\\\"password\\\\\":\\\\\"2921lolo\\\\\"}\")",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const r=JSON.parse\\(d\\);console.log\\('Status:', r.data?.status\\)}\\)\")",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const r=JSON.parse\\(d\\);if\\(r.success\\)console.log\\('RESPUESTA BOT:\\\\n'+r.data.content\\);else console.log\\('ERROR:',r.error\\)}\\)\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/v1/bots/77eb22d3-c3ea-4bf8-8df0-23f0fb8e9114/message -H 'Content-Type: application/json' -d '{\"userPhone\":\"+56912345678\",\"userName\":\"Rodrigo\",\"content\":\"Hola, que puedes hacer por mi?\",\"channel\":\"whatsapp\"}')",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const r=JSON.parse\\(d\\);if\\(r.success\\)console.log\\(r.data.content\\);else console.log\\('ERROR:',JSON.stringify\\(r.error\\)\\)}\\)\")"
+    ]
+  }
+}

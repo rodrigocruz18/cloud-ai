@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm install && npm run build -w packages/shared && npm run build -w apps/frontend",
+  "outputDirectory": "apps/frontend/dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

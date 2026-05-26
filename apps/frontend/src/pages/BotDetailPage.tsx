@@ -1,55 +1,150 @@
-import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, Copy, Check, FlaskConical } from 'lucide-react'
+import { useState } from 'react'
 import { api } from '@/lib/api'
 import type { Bot } from '@cloud-ai/shared'
+import { cn } from '@/lib/utils'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs'
+import { GeneralTab }       from './bot-tabs/GeneralTab'
+import { KnowledgeTab }     from './bot-tabs/KnowledgeTab'
+import { ToolsTab }         from './bot-tabs/ToolsTab'
+import { IntegrationsTab }  from './bot-tabs/IntegrationsTab'
+import { ConversationsTab } from './bot-tabs/ConversationsTab'
+import { LogsTab }          from './bot-tabs/LogsTab'
+import { TestChatModal }    from '@/components/TestChatModal'
+
+const STATUS_STYLES: Record<Bot['status'], string> = {
+  active:   'bg-green-100 text-green-700',
+  inactive: 'bg-red-100 text-red-700',
+  draft:    'bg-yellow-100 text-yellow-700',
+}
+const STATUS_LABELS: Record<Bot['status'], string> = {
+  active: 'Activo', inactive: 'Inactivo', draft: 'Borrador',
+}
 
 export function BotDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [copied, setCopied] = useState(false)
+  const [testOpen, setTestOpen] = useState(false)
+
   const { data: bot, isLoading } = useQuery({
     queryKey: ['bots', id],
     queryFn: () => api.get<Bot>(`/bots/${id}`),
     enabled: !!id,
   })
 
+  const toggleStatus = useMutation({
+    mutationFn: () => {
+      const next = bot!.status === 'active' ? 'inactive' : 'active'
+      return api.put<Bot>(`/bots/${id}`, { status: next })
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['bots', id], updated)
+      queryClient.invalidateQueries({ queryKey: ['bots'] })
+    },
+  })
+
+  function copyWebhook() {
+    void navigator.clipboard.writeText(`http://localhost:3001/api/v1/bots/${bot?.id}/message`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (isLoading) return <div className="p-8 text-muted-foreground">Cargando...</div>
   if (!bot) return <div className="p-8 text-destructive">Bot no encontrado</div>
 
   return (
-    <div className="p-8 max-w-3xl">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">{bot.name}</h2>
-        <p className="text-muted-foreground mt-1">{bot.description ?? 'Sin descripción'}</p>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="border-b px-8 py-5">
+        <button
+          onClick={() => navigate('/bots')}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-3 transition-colors"
+        >
+          <ArrowLeft size={13} /> Bots
+        </button>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold">{bot.name}</h2>
+            <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', STATUS_STYLES[bot.status])}>
+              {STATUS_LABELS[bot.status]}
+            </span>
+            <button
+              onClick={copyWebhook}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border rounded px-2 py-1 transition-colors"
+            >
+              {copied ? <Check size={11} className="text-green-600" /> : <Copy size={11} />}
+              Webhook
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTestOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border border-primary/40 text-primary hover:bg-primary/5 transition-colors"
+            >
+              <FlaskConical size={13} /> Probar
+            </button>
+            <button
+              onClick={() => toggleStatus.mutate()}
+              disabled={toggleStatus.isPending}
+              className={cn(
+                'px-4 py-1.5 rounded-md text-sm font-medium border transition-colors disabled:opacity-50',
+                bot.status === 'active'
+                  ? 'border-red-200 text-red-600 hover:bg-red-50'
+                  : 'border-green-200 text-green-600 hover:bg-green-50'
+              )}
+            >
+              {toggleStatus.isPending ? '...' : bot.status === 'active' ? 'Desactivar' : 'Activar'}
+            </button>
+          </div>
+        </div>
+
+        {bot.description && (
+          <p className="text-sm text-muted-foreground mt-1">{bot.description}</p>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <InfoCard label="Provider" value={bot.provider} />
-        <InfoCard label="Modelo" value={bot.model} />
-        <InfoCard label="Temperatura" value={String(bot.temperature)} />
-        <InfoCard label="Estado" value={bot.status} />
+      {/* Tabs */}
+      <div className="flex-1 overflow-auto">
+        <Tabs defaultValue="general">
+          <TabsList className="px-8 bg-background sticky top-0 z-10">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="conocimiento">Conocimiento</TabsTrigger>
+            <TabsTrigger value="herramientas">Herramientas</TabsTrigger>
+            <TabsTrigger value="integraciones">Integraciones</TabsTrigger>
+            <TabsTrigger value="conversaciones">Conversaciones</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
+          </TabsList>
+
+          <div className="px-8">
+            <TabsContent value="general">
+              <GeneralTab bot={bot} />
+            </TabsContent>
+            <TabsContent value="conocimiento">
+              <KnowledgeTab bot={bot} />
+            </TabsContent>
+            <TabsContent value="herramientas">
+              <ToolsTab bot={bot} />
+            </TabsContent>
+            <TabsContent value="integraciones">
+              <IntegrationsTab bot={bot} />
+            </TabsContent>
+            <TabsContent value="conversaciones">
+              <ConversationsTab bot={bot} />
+            </TabsContent>
+            <TabsContent value="logs">
+              <LogsTab bot={bot} />
+            </TabsContent>
+          </div>
+        </Tabs>
       </div>
 
-      <div className="bg-card border rounded-lg p-4">
-        <p className="text-sm font-medium mb-2">System Prompt</p>
-        <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 rounded p-3">
-          {bot.prompt}
-        </pre>
-      </div>
-
-      <div className="mt-4 bg-card border rounded-lg p-4">
-        <p className="text-sm font-medium mb-1">Webhook URL</p>
-        <code className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-          POST /api/v1/bots/{bot.id}/message
-        </code>
-      </div>
-    </div>
-  )
-}
-
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-card border rounded-lg p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium mt-0.5">{value}</p>
+      {testOpen && <TestChatModal bot={bot} onClose={() => setTestOpen(false)} />}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/auth'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { BotsPage } from '@/pages/BotsPage'
+import { BotCreatePage } from '@/pages/BotCreatePage'
 import { BotDetailPage } from '@/pages/BotDetailPage'
 import { ConversationsPage } from '@/pages/ConversationsPage'
 import { ConversationDetailPage } from '@/pages/ConversationDetailPage'
@@ -30,6 +31,7 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="bots" element={<BotsPage />} />
+          <Route path="bots/new" element={<BotCreatePage />} />
           <Route path="bots/:id" element={<BotDetailPage />} />
           <Route path="conversations" element={<ConversationsPage />} />
           <Route path="conversations/:id" element={<ConversationDetailPage />} />

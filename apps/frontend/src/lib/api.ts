@@ -1,20 +1,24 @@
 import type { ApiResponse } from '@cloud-ai/shared'
 import { useAuthStore } from '@/store/auth'
 
-const BASE_URL = '/api/v1'
+const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
 
 async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
   const token = useAuthStore.getState().token
+  const hasBody = options.body !== undefined
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string>),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+
+  if (res.status === 204) return undefined as T
+
   const json = (await res.json()) as ApiResponse<T>
 
   if (!json.success) {

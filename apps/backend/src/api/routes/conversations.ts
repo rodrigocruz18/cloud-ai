@@ -2,18 +2,19 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../db/supabase.js'
 
 export async function conversationRoutes(app: FastifyInstance): Promise<void> {
-  // List conversations (with optional botId filter)
+  // List conversations (optional filters: botId, clientId)
   app.get('/conversations', async (request, reply) => {
-    const { botId, page = '1', pageSize = '20' } = request.query as Record<string, string>
+    const { botId, clientId, page = '1', pageSize = '20' } = request.query as Record<string, string>
     const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10)
 
     let query = supabase
       .from('conversations')
-      .select('*, bots(name)', { count: 'exact' })
+      .select('*, bots!inner(id, name, client_id)', { count: 'exact' })
       .order('updated_at', { ascending: false })
       .range(offset, offset + parseInt(pageSize, 10) - 1)
 
     if (botId) query = query.eq('bot_id', botId)
+    if (clientId) query = query.eq('bots.client_id', clientId)
 
     const { data, error, count } = await query
     if (error) return reply.code(500).send({ success: false, error: { code: 'DB_ERROR', message: error.message } })

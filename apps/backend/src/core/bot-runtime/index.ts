@@ -42,9 +42,6 @@ export class BotRuntime {
     )
     if (!responseResult.ok) return err(responseResult.error)
 
-    // 6. Persist assistant response
-    await this.persistMessage(conversationId, 'assistant', responseResult.value.content)
-
     return ok({
       content: responseResult.value.content,
       conversationId,

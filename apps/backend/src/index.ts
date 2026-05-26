@@ -6,8 +6,12 @@ import rateLimit from '@fastify/rate-limit'
 import { config } from './config/index.js'
 import { authRoutes } from './api/routes/auth.js'
 import { botRoutes } from './api/routes/bots.js'
+import { clientRoutes } from './api/routes/clients.js'
 import { messageRoutes } from './api/routes/messages.js'
 import { conversationRoutes } from './api/routes/conversations.js'
+import { toolRoutes } from './api/routes/tools.js'
+import { integrationRoutes } from './api/routes/integrations.js'
+import { knowledgeRoutes } from './api/routes/knowledge.js'
 
 const app = Fastify({
   logger: {
@@ -21,7 +25,7 @@ const app = Fastify({
 async function bootstrap(): Promise<void> {
   await app.register(helmet)
   await app.register(cors, {
-    origin: config.frontendUrl,
+    origin: [config.frontendUrl, 'http://localhost:5174', 'http://localhost:5173'],
     credentials: true,
   })
   await app.register(rateLimit, {
@@ -56,8 +60,12 @@ async function bootstrap(): Promise<void> {
         reply.code(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid or missing token' } })
       }
     })
+    await protectedApp.register(clientRoutes, { prefix: '/api/v1' })
     await protectedApp.register(botRoutes, { prefix: '/api/v1' })
     await protectedApp.register(conversationRoutes, { prefix: '/api/v1' })
+    await protectedApp.register(toolRoutes, { prefix: '/api/v1' })
+    await protectedApp.register(integrationRoutes, { prefix: '/api/v1' })
+    await protectedApp.register(knowledgeRoutes, { prefix: '/api/v1' })
   })
 
   // Webhook route — authenticated via webhook_secret, not JWT
