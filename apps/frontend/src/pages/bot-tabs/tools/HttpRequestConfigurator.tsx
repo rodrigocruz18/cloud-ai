@@ -101,7 +101,7 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
   function startTest(integration: Integration) {
     const cfg = integration.config as HttpRequestConfig
     const initial: Record<string, string> = {}
-    for (const p of cfg.ai_parameters) initial[p.name] = ''
+    for (const p of (cfg.ai_parameters ?? [])) initial[p.name] = ''
     setTesting(integration)
     setTestArgs(initial)
     setTestResult(null)
