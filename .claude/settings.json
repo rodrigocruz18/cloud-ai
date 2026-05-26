@@ -3,7 +3,9 @@
     "allow": [
       "Read(//c/Program Files/GitHub CLI/**)",
       "PowerShell($env:PATH += \";C:\\\\Program Files\\\\GitHub CLI\"; gh --version)",
-      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\GitHub CLI\"; gh auth status)"
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\GitHub CLI\"; gh auth status)",
+      "PowerShell(npm install -g @railway/cli)",
+      "PowerShell(railway --version)"
     ]
   }
 }

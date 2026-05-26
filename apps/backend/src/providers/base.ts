@@ -9,7 +9,7 @@ export class AIProviderError extends Error {
   constructor(
     public readonly provider: string,
     message: string,
-    public readonly cause?: unknown
+    public override readonly cause?: unknown
   ) {
     super(`[${provider}] ${message}`)
     this.name = 'AIProviderError'

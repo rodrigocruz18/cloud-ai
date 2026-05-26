@@ -187,7 +187,7 @@ export class AIOrchestrator {
         response.toolCalls.map(async (toolCall) => {
           const httpIntegration = httpIntegrationMap.get(toolCall.name)
           if (httpIntegration) {
-            const cfg = httpIntegration.config as Parameters<typeof executeHttpRequest>[0]
+            const cfg = httpIntegration.config as unknown as Parameters<typeof executeHttpRequest>[0]
             return executeHttpRequest(cfg, httpIntegration.credentials_encrypted, toolCall.arguments, toolCall.id)
           }
           // Fall back to static tool registry
@@ -201,8 +201,8 @@ export class AIOrchestrator {
         messages: [
           ...currentContext.messages,
           {
-            role: 'assistant',
-            content: response.content,
+            role: 'assistant' as const,
+            content: response.content ?? '',
             tool_calls: response.toolCalls,
             tool_call_id: null,
           },

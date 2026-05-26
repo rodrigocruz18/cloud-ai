@@ -67,7 +67,7 @@ export async function executeHttpRequest(
   const queryParams = interpolateKV(cfg.query_params, args)
   if (queryParams.length > 0) {
     const qs = new URLSearchParams(
-      queryParams.filter((kv) => kv.key).map((kv) => [kv.key, kv.value])
+      queryParams.filter((kv) => kv.key).map((kv): [string, string] => [kv.key, kv.value])
     )
     url += (url.includes('?') ? '&' : '?') + qs.toString()
   }
@@ -91,7 +91,7 @@ export async function executeHttpRequest(
   }
 
   // Build body
-  let body: BodyInit | undefined
+  let body: string | undefined
   if (cfg.body_type === 'json') {
     headers['Content-Type'] = headers['Content-Type'] ?? 'application/json'
     body = interpolate(cfg.body_content, args)

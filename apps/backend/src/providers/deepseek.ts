@@ -41,8 +41,8 @@ export class DeepSeekProvider implements AIProvider {
       ...context.messages.map((m) => ({
         role: m.role,
         content: m.content,
-        tool_calls: m.tool_calls as DeepSeekToolCall[] | undefined,
-        tool_call_id: m.tool_call_id ?? undefined,
+        ...(m.tool_calls ? { tool_calls: m.tool_calls as unknown as DeepSeekToolCall[] } : {}),
+        ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
       })),
     ]
 
