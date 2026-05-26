@@ -48,7 +48,8 @@ export function BotDetailPage() {
   })
 
   function copyWebhook() {
-    void navigator.clipboard.writeText(`http://localhost:3001/api/v1/bots/${bot?.id}/message`)
+    const base = (import.meta.env.VITE_API_URL as string | undefined)?.replace('/api/v1', '') ?? window.location.origin
+    void navigator.clipboard.writeText(`${base}/api/v1/bots/${bot?.id}/message`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
