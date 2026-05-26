@@ -46,7 +46,7 @@ async function bootstrap(): Promise<void> {
   })
 
   // Health check
-  app.get('/health', async () => ({ status: 'ok', version: '0.1.0' }))
+  app.get('/health', async () => ({ status: 'ok', version: '0.1.1', node: process.version }))
 
   // Routes
   await app.register(authRoutes, { prefix: '/api/v1' })
