@@ -37,7 +37,10 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
   const [editing, setEditing] = useState<Integration | null>(null)
   const [testing, setTesting] = useState<Integration | null>(null)
   const [testArgs, setTestArgs] = useState<Record<string, string>>({})
-  const [testResult, setTestResult] = useState<{ content: string; isError: boolean } | null>(null)
+  const [testResult, setTestResult] = useState<{
+    request: { method: string; url: string; headers: Record<string, string>; body?: string } | null
+    response: { content: string; isError: boolean }
+  } | null>(null)
   const [testLoading, setTestLoading] = useState(false)
 
   const { data: integrations, isLoading } = useQuery({
@@ -110,13 +113,13 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
     setTestLoading(true)
     setTestResult(null)
     try {
-      const result = await api.post<{ content: string; isError: boolean }>(
-        `/bots/${bot.id}/integrations/${testing.id}/test`,
-        testArgs
-      )
+      const result = await api.post<{
+        request: { method: string; url: string; headers: Record<string, string>; body?: string } | null
+        response: { content: string; isError: boolean }
+      }>(`/bots/${bot.id}/integrations/${testing.id}/test`, testArgs)
       setTestResult(result)
     } catch (e) {
-      setTestResult({ content: e instanceof Error ? e.message : 'Error desconocido', isError: true })
+      setTestResult({ request: null, response: { content: e instanceof Error ? e.message : 'Error desconocido', isError: true } })
     } finally {
       setTestLoading(false)
     }
@@ -304,13 +307,41 @@ export function HttpRequestConfigurator({ bot, onBack }: { bot: Bot; onBack?: ()
         </button>
 
         {testResult && (
-          <div className={`rounded-lg border p-4 ${testResult.isError ? 'border-destructive/40 bg-destructive/5' : 'border-green-200 bg-green-50'}`}>
-            <p className={`text-xs font-semibold mb-2 ${testResult.isError ? 'text-destructive' : 'text-green-700'}`}>
-              {testResult.isError ? 'Error' : 'Respuesta exitosa'}
-            </p>
-            <pre className="text-xs whitespace-pre-wrap break-words font-mono max-h-80 overflow-auto">
-              {testResult.content}
-            </pre>
+          <div className="space-y-3">
+            {/* Request */}
+            {testResult.request && (
+              <div className="rounded-lg border border-border bg-muted/40 p-4">
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Request enviado</p>
+                <p className="text-xs font-mono mb-2">
+                  <span className="font-bold text-primary">{testResult.request.method}</span>{' '}
+                  {testResult.request.url}
+                </p>
+                {Object.keys(testResult.request.headers).length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-1">Headers</p>
+                    <pre className="text-xs font-mono whitespace-pre-wrap">
+                      {Object.entries(testResult.request.headers).map(([k, v]) => `${k}: ${v}`).join('\n')}
+                    </pre>
+                  </div>
+                )}
+                {testResult.request.body && (
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-1">Body</p>
+                    <pre className="text-xs font-mono whitespace-pre-wrap break-words">{testResult.request.body}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Response */}
+            <div className={`rounded-lg border p-4 ${testResult.response.isError ? 'border-destructive/40 bg-destructive/5' : 'border-green-200 bg-green-50'}`}>
+              <p className={`text-xs font-semibold mb-2 uppercase tracking-wide ${testResult.response.isError ? 'text-destructive' : 'text-green-700'}`}>
+                {testResult.response.isError ? 'Error en respuesta' : 'Respuesta exitosa'}
+              </p>
+              <pre className="text-xs whitespace-pre-wrap break-words font-mono max-h-80 overflow-auto">
+                {testResult.response.content}
+              </pre>
+            </div>
           </div>
         )}
       </div>

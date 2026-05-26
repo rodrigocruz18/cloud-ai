@@ -23,7 +23,8 @@
       "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"feat: close conversation when bot detects farewell via [CLOSE] marker\")",
       "Bash(git -C \"c:/Proyectos/Cloud_AI\" add -A)",
       "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"feat: simplify tools tab to HTTP Request only, remove integrations tab\")",
-      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"feat: edit knowledge sources, test & clone HTTP Request tools\")"
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"feat: edit knowledge sources, test & clone HTTP Request tools\")",
+      "Bash(git -C \"c:/Proyectos/Cloud_AI\" commit -m \"feat: show request and response details in HTTP Request test view\")"
     ]
   }
 }

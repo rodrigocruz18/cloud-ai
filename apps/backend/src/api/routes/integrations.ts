@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { supabase } from '../../db/supabase.js'
 import { encrypt } from '../../lib/encrypt.js'
-import { executeHttpRequest } from '../../tools/executors/http-request.js'
+import { executeHttpRequest, type HttpRequestDetails } from '../../tools/executors/http-request.js'
 
 const CreateSchema = z.object({
   type: z.enum(['gmail','google_drive','agendapro','salesforce','hubspot','shopify','http_request']),
@@ -80,14 +80,17 @@ export async function integrationRoutes(app: FastifyInstance): Promise<void> {
 
     if (!data) return reply.code(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'Integration not found' } })
 
+    let requestDetails: HttpRequestDetails | null = null
+
     const result = await executeHttpRequest(
       data.config as Parameters<typeof executeHttpRequest>[0],
       data.credentials_encrypted as string | null,
       args,
-      'test'
+      'test',
+      (details) => { requestDetails = details }
     )
 
-    return { success: true, data: { content: result.content, isError: result.isError } }
+    return { success: true, data: { request: requestDetails, response: { content: result.content, isError: result.isError } } }
   })
 
   app.delete('/bots/:botId/integrations/:id', async (request, reply) => {

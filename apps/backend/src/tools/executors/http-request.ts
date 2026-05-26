@@ -38,11 +38,19 @@ function interpolateKV(items: KeyValue[], args: Record<string, unknown>): KeyVal
   }))
 }
 
+export interface HttpRequestDetails {
+  method: string
+  url: string
+  headers: Record<string, string>
+  body: string | undefined
+}
+
 export async function executeHttpRequest(
   config: HttpRequestConfig,
   encryptedCredentials: string | null,
   args: Record<string, unknown>,
-  toolCallId: string
+  toolCallId: string,
+  captureDetails?: (details: HttpRequestDetails) => void
 ): Promise<ToolResult> {
   // Decrypt credentials
   const credentials: Record<string, string> = {}
@@ -104,6 +112,11 @@ export async function executeHttpRequest(
     }
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
     body = form.toString()
+  }
+
+  // Capture request details if requested
+  if (captureDetails) {
+    captureDetails({ method: cfg.method, url, headers, body: ['GET', 'HEAD'].includes(cfg.method) ? undefined : body })
   }
 
   // Execute request
