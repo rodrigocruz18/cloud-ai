@@ -12,6 +12,7 @@ import { conversationRoutes } from './api/routes/conversations.js'
 import { toolRoutes } from './api/routes/tools.js'
 import { integrationRoutes } from './api/routes/integrations.js'
 import { knowledgeRoutes } from './api/routes/knowledge.js'
+import { agendaDisponibilidadRoutes } from './api/routes/agenda-disponibilidad.js'
 
 const app = Fastify({
   logger: {
@@ -70,6 +71,9 @@ async function bootstrap(): Promise<void> {
 
   // Webhook route — authenticated via webhook_secret, not JWT
   await app.register(messageRoutes, { prefix: '/api/v1' })
+
+  // Standalone utility tools — no JWT, called server-to-server by bots
+  await app.register(agendaDisponibilidadRoutes, { prefix: '/api/v1' })
 
   await app.listen({ port: config.port, host: '0.0.0.0' })
   app.log.info(`Cloud AI backend running on port ${config.port}`)
