@@ -42,4 +42,5 @@ export interface OutgoingMessage {
   conversationId: string
   messageId: string
   closeConversation: boolean
+  handoff: boolean
 }

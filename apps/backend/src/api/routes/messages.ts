@@ -61,6 +61,6 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(500).send({ success: false, error: { code: 'RUNTIME_ERROR', message: result.error.message } })
     }
 
-    return { success: true, close_conversation: result.value.closeConversation, data: result.value }
+    return { success: true, close_conversation: result.value.closeConversation, handoff: result.value.handoff, data: result.value }
   })
 }

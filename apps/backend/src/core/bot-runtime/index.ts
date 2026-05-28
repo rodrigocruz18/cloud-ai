@@ -44,16 +44,18 @@ export class BotRuntime {
 
     const rawContent = responseResult.value.content
     const closeConversation = rawContent.includes('[CLOSE]')
-    const content = rawContent.replace('[CLOSE]', '').trim()
+    const handoff = rawContent.includes('[HANDOFF]')
+    const content = rawContent.replace('[CLOSE]', '').replace('[HANDOFF]', '').trim()
 
-    if (closeConversation) {
+    if (closeConversation || handoff) {
+      const newStatus = handoff ? 'handoff' : 'closed'
       await Promise.all([
         supabase.from('messages').update({ content }).eq('id', responseResult.value.messageId),
-        supabase.from('conversations').update({ status: 'closed' }).eq('id', conversationId),
+        supabase.from('conversations').update({ status: newStatus }).eq('id', conversationId),
       ])
     }
 
-    return ok({ content, conversationId, messageId: responseResult.value.messageId, closeConversation })
+    return ok({ content, conversationId, messageId: responseResult.value.messageId, closeConversation, handoff })
   }
 
   private async loadBot(botId: string): Promise<Result<Bot>> {
